@@ -13,7 +13,7 @@ let isDegMode = true;
 let isEvaluated = false;
 let calcHistory = [];
 
-// Event delegation to remove button focus outline on click (works for present and dynamic buttons)
+// Event delegation to remove button focus outline on click
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('button');
   if (btn) btn.blur();
@@ -41,7 +41,7 @@ function updateDisplay() {
 }
 
 function isOperator(char) {
-  return ['+', '-', '×', '÷', '^', '%', '²', '³', 'P', 'C', 'ʸ√', '!'].includes(char);
+  return ['+', '-', '×', '÷', '^', '%', '²', '³', 'P', 'C', 'ʸ√', '!', '√', '∛'].includes(char);
 }
 
 function append(val) {
@@ -97,13 +97,18 @@ function append(val) {
         return;
       }
     } else {
+      if (currentExpression.endsWith('ʸ√-')) {
+        currentExpression = currentExpression.slice(0, -3) + val;
+        updateDisplay();
+        return;
+      }
       if (currentExpression.endsWith('ʸ√')) {
         currentExpression = currentExpression.slice(0, -2) + val;
         updateDisplay();
         return;
       }
       if (/[+×÷^\-PC]$/.test(currentExpression)) {
-        if (currentExpression.endsWith('-') && /[×÷^(,PC]/.test(currentExpression.slice(-2, -1))) {
+        if (currentExpression.endsWith('-') && /[×÷^PC]/.test(currentExpression.slice(-2, -1))) {
           currentExpression = currentExpression.slice(0, -2) + val;
         } else {
           currentExpression = currentExpression.slice(0, -1) + val;
@@ -157,10 +162,11 @@ function deleteChar() {
     clearAll();
     return;
   }
+  // Sorted by token length descending so longer functions match first
   const funcTokens = [
-    'asin(', 'acos(', 'atan(', 'sinh(', 'cosh(', 'tanh(',
-    '10^(', 'e^(', 'sin(', 'cos(', 'tan(', 'log10(', 'log(', 'ln(', '1/(',
-    'Ans', 'ʸ√', '∛(', '√(', '(-'
+    'log10(', 'asin(', 'acos(', 'atan(', 'sinh(', 'cosh(', 'tanh(',
+    '10^(', 'sin(', 'cos(', 'tan(', 'log(', 'e^(', '1/(', '∛(', '√(',
+    'ln(', 'Ans', 'ʸ√', '(-'
   ];
   for (let token of funcTokens) {
     if (currentExpression.endsWith(token)) {
@@ -274,9 +280,9 @@ function renderHistory() {
 }
 
 function insertToExpression(textToInsert) {
-  if (textToInsert === "Math Error" || textToInsert === "Syntax Error") return;
+  if (!textToInsert || textToInsert === "Math Error" || textToInsert === "Syntax Error") return;
 
-  let valToInsert = textToInsert;
+  let valToInsert = String(textToInsert).trim();
 
   if (valToInsert.startsWith('-') && currentExpression && /[+×÷^\-(]$/.test(currentExpression)) {
     valToInsert = `(${valToInsert})`;
@@ -293,10 +299,12 @@ function insertToExpression(textToInsert) {
     currentExpression += valToInsert;
   }
 
-  let numVal = Number(textToInsert);
-  if (!isNaN(numVal)) {
-    lastAnswer = numVal;
-    if (ansBadge) ansBadge.innerText = `ANS = ${formatResult(lastAnswer)}`;
+  if (valToInsert !== "") {
+    let numVal = Number(valToInsert);
+    if (!isNaN(numVal)) {
+      lastAnswer = numVal;
+      if (ansBadge) ansBadge.innerText = `ANS = ${formatResult(lastAnswer)}`;
+    }
   }
 
   updateDisplay();
@@ -410,14 +418,6 @@ function parsePostfixOp(str, opToken, targetFuncName, appendArg = "") {
       }
 
       if (depth === 0 && ['+', '-', '*', '/', '^', ','].includes(ch)) {
-        if (['+', '-'].includes(ch)) {
-          let prevIdx = i - 1;
-          while (prevIdx >= 0 && str[prevIdx] === ' ') prevIdx--;
-          if (prevIdx < 0 || ['+', '-', '*', '/', '^', '(', ','].includes(str[prevIdx])) {
-            start = i + 1;
-            break;
-          }
-        }
         start = i + 1;
         break;
       }
@@ -488,24 +488,34 @@ function calculate() {
     parsed = parsed.replace(/π/g, ' __pi__ ');
     parsed = parsed.replace(/(?<![a-zA-Z_])e(?![a-zA-Z_])/g, ' __E__ ');
 
-    // 4. Implicit multiplication resolution
+    // 4. Robust Implicit Multiplication Resolution
+    // Rule A: [Number/Group] * [Func/Paren/Constant/Ans] -> e.g., 2(3), 2sin(30), 2π
+    const implicitLeft1 = '(?:\\d+(?:\\.\\d+)?|___SN_\\d+___|\\)|__pi__|__E__|Ans|[!%²³])';
+    const implicitRight1 = '(?:\\(|\\b__pi__\\b|\\b__E__\\b|\\bAns\\b|__[a-zA-Z0-9_]+)';
+    const implicitRegex1 = new RegExp(`(${implicitLeft1})\\s*(${implicitRight1})`, 'g');
+
+    // Rule B: [Closing Group/Constant/Ans/Postfix] * [Number] -> e.g., (2)3, π2, Ans2, 5!2
+    const implicitLeft2 = '(?:\\)|__pi__|__E__|Ans|[!%²³])';
+    const implicitRight2 = '(?:\\d+(?:\\.\\d+)?|___SN_\\d+___)';
+    const implicitRegex2 = new RegExp(`(${implicitLeft2})\\s*(${implicitRight2})`, 'g');
+
     let prevParsed;
     do {
       prevParsed = parsed;
-      parsed = parsed.replace(/(?<![a-zA-Z_])(\d+(?:\.\d+)?|\)|__pi__|__E__|Ans|___SN_\d+___|!|%|²|³)\s*(\(|__pi__|__E__|Ans|__\w+)/g, '$1*$2');
-      parsed = parsed.replace(/(\)|__pi__|__E__|Ans|___SN_\d+___|!|%|²|³)\s*(?<![a-zA-Z_])(\d+(?:\.\d+)?|___SN_\d+___)/g, '$1*$2');
+      parsed = parsed.replace(implicitRegex1, '$1*$2');
+      parsed = parsed.replace(implicitRegex2, '$1*$2');
     } while (parsed !== prevParsed);
 
-    // 5. Operator parsing
+    // 5. Operator parsing (Correct mathematical order of operations)
     parsed = parsePostfixOp(parsed, '²', '__smart_pow__', '2');
     parsed = parsePostfixOp(parsed, '³', '__smart_pow__', '3');
     parsed = parsePostfixOp(parsed, '%', '__pct__');
     parsed = parsePostfixOp(parsed, '!', '__fact__');
 
+    parsed = parseBinaryInfix(parsed, '^', '__smart_pow__', true);
     parsed = parseBinaryInfix(parsed, 'ʸ√', '__yroot__');
     parsed = parseBinaryInfix(parsed, 'P', '__perm__');
     parsed = parseBinaryInfix(parsed, 'C', '__comb__');
-    parsed = parseBinaryInfix(parsed, '^', '__smart_pow__', true);
 
     // 6. Restore standard JavaScript evaluation names
     parsed = parsed.replace(/__exp\(/g, 'Math.exp(');
@@ -527,15 +537,30 @@ function calculate() {
     parsed = parsed.replace(/__pi__/g, 'Math.PI');
     parsed = parsed.replace(/__E__/g, 'Math.E');
 
-    // FIX: Safely replace scientific placeholders via dynamic callback
+    // Restore scientific placeholders
     parsed = parsed.replace(/___SN_(\d+)___/g, (_, idx) => sciPlaceholders[idx]);
 
-    // 7. Auto-close dangling parentheses
-    let openCount = (parsed.match(/\(/g) || []).length;
-    let closeCount = (parsed.match(/\)/g) || []).length;
-    if (openCount > closeCount) {
-      parsed += ')'.repeat(openCount - closeCount);
+    // 7. Balance parentheses cleanly (strips orphan close parens, closes dangling open parens)
+    let depth = 0;
+    let balanced = "";
+    for (let i = 0; i < parsed.length; i++) {
+      let ch = parsed[i];
+      if (ch === '(') {
+        depth++;
+        balanced += ch;
+      } else if (ch === ')') {
+        if (depth > 0) {
+          depth--;
+          balanced += ch;
+        }
+      } else {
+        balanced += ch;
+      }
     }
+    if (depth > 0) {
+      balanced += ')'.repeat(depth);
+    }
+    parsed = balanced;
 
     // 8. Definition of math wrappers
     const __smart_pow__ = (base, exp) => {
@@ -580,6 +605,7 @@ function calculate() {
         if (norm === 0 || norm === 180) return 0;
         return Math.tan(x * Math.PI / 180);
       }
+      if (Math.abs(Math.cos(x)) < 1e-15) return NaN;
       return Math.tan(x);
     };
 
@@ -693,31 +719,39 @@ document.addEventListener('keydown', (e) => {
   else if (key === '(') { e.preventDefault(); append('('); }
   else if (key === ')') { e.preventDefault(); append(')'); }
   
-  else if (key === 'S') { e.preventDefault(); appendFunc('asin('); }
-  else if (key === 'C') { 
-    e.preventDefault(); 
-    if (/(?:\d|\)|π|e|Ans|!|%|²|³)$/.test(currentExpression)) {
-      append('C');
+  else if (key.toLowerCase() === 's') {
+    e.preventDefault();
+    if (e.shiftKey) appendFunc('asin(');
+    else appendFunc('sin(');
+  }
+  else if (key.toLowerCase() === 'c') {
+    e.preventDefault();
+    if (e.shiftKey) {
+      if (/(?:\d|\)|π|e|Ans|!|%|²|³)$/.test(currentExpression)) {
+        append('C');
+      } else {
+        appendFunc('acos(');
+      }
     } else {
-      appendFunc('acos(');
+      appendFunc('cos(');
     }
   }
-  else if (key === 'T') { e.preventDefault(); appendFunc('atan('); }
-  else if (key === 's') { e.preventDefault(); appendFunc('sin('); }
-  else if (key === 'c') { e.preventDefault(); appendFunc('cos('); }
-  else if (key === 't') { e.preventDefault(); appendFunc('tan('); }
-  
-  else if (key === 'l' || key === 'L') { e.preventDefault(); appendFunc('log('); }
-  else if (key === 'n' || key === 'N') { e.preventDefault(); appendFunc('ln('); }
-  else if (key === 'p') { e.preventDefault(); append('π'); }
-  else if (key === 'P') { 
-    e.preventDefault(); 
-    if (/(?:\d|\)|π|e|Ans|!|%|²|³)$/.test(currentExpression)) {
+  else if (key.toLowerCase() === 't') {
+    e.preventDefault();
+    if (e.shiftKey) appendFunc('atan(');
+    else appendFunc('tan(');
+  }
+  else if (key.toLowerCase() === 'p') {
+    e.preventDefault();
+    if (e.shiftKey && /(?:\d|\)|π|e|Ans|!|%|²|³)$/.test(currentExpression)) {
       append('P');
     } else {
       append('π');
     }
   }
+  
+  else if (key === 'l' || key === 'L') { e.preventDefault(); appendFunc('log('); }
+  else if (key === 'n' || key === 'N') { e.preventDefault(); appendFunc('ln('); }
   else if (key === 'e' || key === 'E') { e.preventDefault(); append('e'); }
   else if (key === 'r' || key === 'R') { e.preventDefault(); appendFunc('√('); }
   else if (key === 'a' || key === 'A') { e.preventDefault(); append('Ans'); }
