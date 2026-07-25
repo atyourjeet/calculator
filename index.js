@@ -1,3 +1,4 @@
+// Safe DOM Element Selections
 const exprDisplay = document.getElementById('expression');
 const resDisplay = document.getElementById('result');
 const ansBadge = document.getElementById('ans-badge');
@@ -12,9 +13,10 @@ let isDegMode = true;
 let isEvaluated = false;
 let calcHistory = [];
 
-// Remove persistent outline focus on buttons on click
-document.querySelectorAll('button').forEach(btn => {
-  btn.addEventListener('click', () => btn.blur());
+// Event delegation to remove button focus outline on click (works for present and dynamic buttons)
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (btn) btn.blur();
 });
 
 // Load history from localStorage safely
@@ -29,9 +31,13 @@ try {
 renderHistory();
 
 function updateDisplay() {
-  exprDisplay.innerText = currentExpression;
-  exprDisplay.scrollLeft = exprDisplay.scrollWidth;
-  resDisplay.scrollLeft = resDisplay.scrollWidth;
+  if (exprDisplay) {
+    exprDisplay.innerText = currentExpression;
+    exprDisplay.scrollLeft = exprDisplay.scrollWidth;
+  }
+  if (resDisplay) {
+    resDisplay.scrollLeft = resDisplay.scrollWidth;
+  }
 }
 
 function isOperator(char) {
@@ -54,7 +60,7 @@ function append(val) {
     return;
   }
 
-  if (!currentExpression && binaryOps.includes(val) && val !== '+') {
+  if (!currentExpression && binaryOps.includes(val)) {
     if (val === '-') {
       currentExpression = "-";
       updateDisplay();
@@ -141,7 +147,7 @@ function appendReciprocal() {
 
 function clearAll() {
   currentExpression = "";
-  resDisplay.innerText = "0";
+  if (resDisplay) resDisplay.innerText = "0";
   isEvaluated = false;
   updateDisplay();
 }
@@ -220,7 +226,7 @@ function toggleSign() {
 }
 
 function toggleHistory() {
-  historyPanel.classList.toggle('open');
+  if (historyPanel) historyPanel.classList.toggle('open');
 }
 
 function addHistoryEntry(expr, res) {
@@ -235,6 +241,7 @@ function addHistoryEntry(expr, res) {
 }
 
 function renderHistory() {
+  if (!historyList) return;
   historyList.innerHTML = "";
   if (calcHistory.length === 0) {
     const emptyDiv = document.createElement('div');
@@ -289,7 +296,7 @@ function insertToExpression(textToInsert) {
   let numVal = Number(textToInsert);
   if (!isNaN(numVal)) {
     lastAnswer = numVal;
-    ansBadge.innerText = `ANS = ${formatResult(lastAnswer)}`;
+    if (ansBadge) ansBadge.innerText = `ANS = ${formatResult(lastAnswer)}`;
   }
 
   updateDisplay();
@@ -427,8 +434,7 @@ function parsePostfixOp(str, opToken, targetFuncName, appendArg = "") {
 }
 
 function formatResult(val) {
-  if (typeof val !== 'number' || isNaN(val)) return "Math Error";
-  if (!isFinite(val)) return val > 0 ? "Infinity" : "-Infinity";
+  if (typeof val !== 'number' || isNaN(val) || !isFinite(val)) return "Math Error";
 
   if (Math.abs(val) < 1e-15) val = 0;
 
@@ -458,12 +464,11 @@ function calculate() {
       return `___SN_${sciPlaceholders.length - 1}___`;
     });
 
-    // 3. Map mathematical functions to digit-free placeholders
+    // 3. Map mathematical functions to placeholders
     parsed = parsed.replace(/e\^\(/g, '__exp(');
     parsed = parsed.replace(/∛\(/g, '__cbrt(');
     parsed = parsed.replace(/√\(/g, '__sqrt(');
 
-    // FIX: Using __lg( instead of __log10( prevents digit matching on '10'
     parsed = parsed.replace(/(?<![a-zA-Z_])log10\s*\(/g, '__lg(');
     parsed = parsed.replace(/(?<![a-zA-Z_])log\s*\(/g, '__lg(');
     parsed = parsed.replace(/(?<![a-zA-Z_])ln\s*\(/g, '__log(');
@@ -483,7 +488,7 @@ function calculate() {
     parsed = parsed.replace(/π/g, ' __pi__ ');
     parsed = parsed.replace(/(?<![a-zA-Z_])e(?![a-zA-Z_])/g, ' __E__ ');
 
-    // 4. Implicit multiplication resolution (with boundary lookbehinds)
+    // 4. Implicit multiplication resolution
     let prevParsed;
     do {
       prevParsed = parsed;
@@ -522,9 +527,8 @@ function calculate() {
     parsed = parsed.replace(/__pi__/g, 'Math.PI');
     parsed = parsed.replace(/__E__/g, 'Math.E');
 
-    sciPlaceholders.forEach((val, idx) => {
-      parsed = parsed.replace(new RegExp(`___SN_${idx}___`, 'g'), val);
-    });
+    // FIX: Safely replace scientific placeholders via dynamic callback
+    parsed = parsed.replace(/___SN_(\d+)___/g, (_, idx) => sciPlaceholders[idx]);
 
     // 7. Auto-close dangling parentheses
     let openCount = (parsed.match(/\(/g) || []).length;
@@ -644,19 +648,23 @@ function calculate() {
     const result = evalFunc(lastAnswer, _sin, _cos, _tan, _asin, _acos, _atan, _log10, _ln, __pct__, __yroot__, __fact__, __perm__, __comb__, __smart_pow__);
 
     let formatted = formatResult(result);
-    resDisplay.innerText = formatted;
-    resDisplay.scrollLeft = resDisplay.scrollWidth;
+    if (resDisplay) {
+      resDisplay.innerText = formatted;
+      resDisplay.scrollLeft = resDisplay.scrollWidth;
+    }
 
     if (formatted !== "Math Error" && formatted !== "Syntax Error") {
       addHistoryEntry(currentExpression, formatted);
       lastAnswer = result;
-      ansBadge.innerText = `ANS = ${formatResult(lastAnswer)}`;
+      if (ansBadge) ansBadge.innerText = `ANS = ${formatResult(lastAnswer)}`;
     }
     isEvaluated = true;
 
   } catch (err) {
-    resDisplay.innerText = "Syntax Error";
-    resDisplay.scrollLeft = resDisplay.scrollWidth;
+    if (resDisplay) {
+      resDisplay.innerText = "Syntax Error";
+      resDisplay.scrollLeft = resDisplay.scrollWidth;
+    }
     isEvaluated = true;
   }
 }
@@ -726,7 +734,7 @@ document.addEventListener('keydown', (e) => {
   }
   else if (key === 'Escape' || key === 'Delete') { 
     e.preventDefault(); 
-    if (historyPanel.classList.contains('open')) {
+    if (historyPanel && historyPanel.classList.contains('open')) {
       toggleHistory();
     } else {
       clearAll(); 
