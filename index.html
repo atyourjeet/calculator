@@ -3,21 +3,39 @@
 <head>
     <link rel="canonical" href="https://atyourjeet.github.io/calculator/" />
     <meta charset="UTF-8" />
-    <meta name="google-site-verification" content="o95TYkk8RAfs1Pqe_zE2eOAg1_d-0YDFd0WYtDrqh8w" />
-    <title>Advanced Scientific Calculator</title>
-    <link rel="stylesheet" href="index.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Free online advanced scientific calculator supporting trigonometry, logarithms, exponentiation, permutations, combinations, and full history logging." />
+    <title>Advanced Scientific Calculator | Free Online Tool</title>
+    <link rel="stylesheet" href="./index.css">
     <style>
         body {
-            display: grid;
-            place-items: center; 
-            align-content: center; 
+            display: flex;
+            flex-direction: column;
+            align-items: center; 
+            justify-content: flex-start;
             min-height: 100vh;
             margin: 0;
+            padding: 20px 16px;
+        }
+        .content-info {
+            max-width: 1020px;
+            width: 100%;
+            margin-top: 30px;
+            color: #334155;
+            line-height: 1.6;
+        }
+        .content-info h2 {
+            font-size: 1.4rem;
+            margin-bottom: 8px;
+            color: #0f172a;
         }
     </style>
 </head>
 <body>
-    <h1 style="text-align: center;"><u>Jeet's Online Scientific Calculator - Simple & Fast</u></h1><br>
+    <header>
+        <h1 style="text-align: center; color: #0f172a;">Jeet's Online Scientific Calculator</h1>
+    </header>
+
     <div class="calculator">
       <div id="history-panel" class="history-panel">
         <div class="history-header">
@@ -105,6 +123,19 @@
         <button class="btn btn-equals" style="grid-column: span 4;" onclick="calculate()" aria-label="Calculate Equals">=</button>
       </div>
     </div>
+
+    <!-- SEO & Textual Context for Googlebot -->
+    <main class="content-info">
+      <section>
+        <h2>About This Scientific Calculator</h2>
+        <p>This web-based scientific calculator provides essential mathematical functions for algebra, trigonometry, logarithms, and standard arithmetic. It supports degree and radian calculations, parenthetical expressions, square and cube roots, powers, factorials, permutations (nPr), and combinations (nCr).</p>
+      </section>
+    </main>
+
+    <noscript>
+      <p style="text-align: center; color: red; margin-top: 20px;">JavaScript is required to use the interactive calculator functions.</p>
+    </noscript>
+
     <script src="index.js"></script>
 </body>
 </html>
