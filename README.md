@@ -1,2 +1,2 @@
 # calculator
-online calculator
+online scientific calculator
