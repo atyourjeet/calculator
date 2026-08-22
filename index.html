@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced Scientific Calculator</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <h1>Jeet's Online Scientific Calculator - Simple & Fast</h1>
+    <div class="calculator">
+      <div id="history-panel" class="history-panel">
+        <div class="history-header">
+          <span class="history-title">History (Max 20)</span>
+          <div class="history-actions">
+            <button class="hist-btn-sm" onclick="clearHistory()">Clear</button>
+            <button class="close-btn" onclick="toggleHistory()" aria-label="Close History">✕</button>
+          </div>
+        </div>
+        <div id="history-list" class="history-list"></div>
+      </div>
+
+      <div class="display-container">
+        <div class="top-bar">
+          <div class="badge-group">
+            <button id="btn-deg" class="badge" onclick="toggleDegRad()" aria-label="Toggle Degree or Radian Mode">DEG</button>
+            <button class="badge" onclick="toggleHistory()" aria-label="Open History Log">📜 History</button>
+          </div>
+          <span id="ans-badge" class="badge muted">ANS = 0</span>
+        </div>
+        <div id="expression" class="expression-display"></div>
+        <div id="result" class="result-display">0</div>
+      </div>
+
+      <div class="keypad">
+        <!-- Row 1 -->
+        <button id="keypad-deg" class="btn btn-trig" onclick="toggleDegRad()" aria-label="Toggle Angle Mode">DEG</button>
+        <button class="btn btn-trig" onclick="append('(')" aria-label="Open Parenthesis">(</button>
+        <button class="btn btn-trig" onclick="append(')')" aria-label="Close Parenthesis">)</button>
+        <button class="btn btn-power" onclick="append('²')" aria-label="Square">x²</button>
+        <button class="btn btn-power" onclick="append('³')" aria-label="Cube">x³</button>
+        <button class="btn btn-comb" onclick="append('P')" aria-label="Permutation">nPr</button>
+        <button class="btn btn-action" onclick="clearAll()" aria-label="All Clear">AC</button>
+        <button class="btn btn-op" onclick="append('×')" aria-label="Multiply">×</button>
+        <button class="btn btn-op" onclick="append('÷')" aria-label="Divide">÷</button>
+
+        <!-- Row 2 -->
+        <button class="btn btn-trig" onclick="appendFunc('sin(')" aria-label="Sine">sin</button>
+        <button class="btn btn-trig" onclick="appendFunc('cos(')" aria-label="Cosine">cos</button>
+        <button class="btn btn-trig" onclick="appendFunc('tan(')" aria-label="Tangent">tan</button>
+        <button class="btn btn-power" onclick="append('^')" aria-label="Exponent">xʸ</button>
+        <button class="btn btn-power" onclick="appendFunc('√(')" aria-label="Square Root">√x</button>
+        <button class="btn btn-comb" onclick="append('C')" aria-label="Combination">nCr</button>
+        <button class="btn btn-num" onclick="append('7')" aria-label="7">7</button>
+        <button class="btn btn-num" onclick="append('8')" aria-label="8">8</button>
+        <button class="btn btn-num" onclick="append('9')" aria-label="9">9</button>
+
+        <!-- Row 3 -->
+        <button class="btn btn-trig" onclick="appendFunc('asin(')" aria-label="Arcsine">sin⁻¹</button>
+        <button class="btn btn-trig" onclick="appendFunc('acos(')" aria-label="Arccosine">cos⁻¹</button>
+        <button class="btn btn-trig" onclick="appendFunc('atan(')" aria-label="Arctangent">tan⁻¹</button>
+        <button class="btn btn-power" onclick="appendFunc('∛(')" aria-label="Cube Root">∛x</button>
+        <button class="btn btn-power" onclick="append('ʸ√')" aria-label="Yth Root">ʸ√x</button>
+        <button class="btn btn-comb" onclick="append('!')" aria-label="Factorial">x!</button>
+        <button class="btn btn-num" onclick="append('4')" aria-label="4">4</button>
+        <button class="btn btn-num" onclick="append('5')" aria-label="5">5</button>
+        <button class="btn btn-num" onclick="append('6')" aria-label="6">6</button>
+
+        <!-- Row 4 -->
+        <button class="btn btn-trig" onclick="appendFunc('sinh(')" aria-label="Hyperbolic Sine">sinh</button>
+        <button class="btn btn-trig" onclick="appendFunc('cosh(')" aria-label="Hyperbolic Cosine">cosh</button>
+        <button class="btn btn-trig" onclick="appendFunc('tanh(')" aria-label="Hyperbolic Tangent">tanh</button>
+        <button class="btn btn-power" onclick="appendFunc('10^(')" aria-label="10 to power of x">10ˣ</button>
+        <button class="btn btn-power" onclick="appendFunc('e^(')" aria-label="e to power of x">eˣ</button>
+        <button class="btn btn-comb" onclick="appendFunc('log(')" aria-label="Base 10 Logarithm">log</button>
+        <button class="btn btn-num" onclick="append('1')" aria-label="1">1</button>
+        <button class="btn btn-num" onclick="append('2')" aria-label="2">2</button>
+        <button class="btn btn-num" onclick="append('3')" aria-label="3">3</button>
+
+        <!-- Row 5 -->
+        <button class="btn btn-comb" onclick="appendReciprocal()" aria-label="Reciprocal">1/x</button>
+        <button class="btn btn-comb" onclick="append('%')" aria-label="Percentage">%</button>
+        <button class="btn btn-comb" onclick="appendFunc('ln(')" aria-label="Natural Logarithm">ln</button>
+        <button class="btn btn-comb" onclick="append('π')" aria-label="Pi Constant">π</button>
+        <button class="btn btn-comb" onclick="append('e')" aria-label="Euler Constant">e</button>
+        <button class="btn btn-comb" onclick="append('Ans')" aria-label="Last Answer">Ans</button>
+        <button class="btn btn-num" onclick="append('0')" aria-label="0">0</button>
+        <button class="btn btn-num" onclick="append('.')" aria-label="Decimal Point">.</button>
+        <button class="btn btn-num" onclick="toggleSign()" aria-label="Toggle Positive or Negative">±</button>
+
+        <!-- Row 6 -->
+        <button class="btn btn-op" style="grid-column: span 2;" onclick="append('+')" aria-label="Add">+</button>
+        <button class="btn btn-op" style="grid-column: span 2;" onclick="append('-')" aria-label="Subtract">-</button>
+        <button class="btn btn-action" style="grid-column: span 1;" onclick="deleteChar()" aria-label="Delete">DEL</button>
+        <button class="btn btn-equals" style="grid-column: span 4;" onclick="calculate()" aria-label="Calculate Equals">=</button>
+      </div>
+    </div>
+    <script src="index.js"></script>
+</body>
+</html>
